@@ -328,7 +328,7 @@ EXPORT_SYMBOL(msm_cpufreq_set_freq_limits);
 #define LOW_CPUCLOCKS_FREQ_MIN  162000
 #endif
 
-static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
+static int msm_cpufreq_init(struct cpufreq_policy *policy)
 {
 	int cur_freq;
 	int index;
@@ -443,7 +443,7 @@ static struct power_suspend msm_cpu_power_suspend_handler = {
 };
 #endif
 
-static int __cpuinit msm_cpufreq_cpu_callback(struct notifier_block *nfb,
+static int msm_cpufreq_cpu_callback(struct notifier_block *nfb,
 		unsigned long action, void *hcpu)
 {
 	unsigned int cpu = (unsigned long)hcpu;
