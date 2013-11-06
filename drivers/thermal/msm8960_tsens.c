@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1047,8 +1047,6 @@ static int __devinit tsens_tm_probe(struct platform_device *pdev)
 	}
 	tsens8960_sensor_mode_init();
 
-	tsens8960_sensor_mode_init();
-
 	rc = request_irq(TSENS_UPPER_LOWER_INT, tsens_isr,
 		IRQF_TRIGGER_RISING, "tsens_interrupt", tmdev);
 	if (rc < 0) {
@@ -1112,4 +1110,3 @@ MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("MSM8960 Temperature Sensor driver");
 MODULE_VERSION("1.0");
 MODULE_ALIAS("platform:tsens8960-tm");
-
