@@ -271,7 +271,6 @@ unsigned int get_rq_info(void)
 }
 EXPORT_SYMBOL(get_rq_info);
 #endif
-
 static void def_work_fn(struct work_struct *work)
 {
 	int64_t diff;
