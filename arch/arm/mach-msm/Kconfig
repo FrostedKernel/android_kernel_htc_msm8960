@@ -1616,6 +1616,14 @@ config CPU_VOLTAGE_TABLE
 	help
 	  Krait User Votlage Control
 
+config BYPASS_KRAIT_NEEDS_VMIN
+	bool "bypass qualcomm Vmin patch"
+	default n
+	help
+		qualcomm force all frequencies to 1150mv for some chipset
+		to improve stability. if you say "Y" stock voltage table 
+		will be used
+
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
 	default n
