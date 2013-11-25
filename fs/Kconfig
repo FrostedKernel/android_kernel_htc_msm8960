@@ -285,4 +285,7 @@ config EXFAT_FS
 	default n
 	select NLS_UTF8
 
+config ASYNC_FSYNC
+	bool "asynchronous fsync"
+	default y
 endmenu
