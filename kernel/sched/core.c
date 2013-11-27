@@ -2894,6 +2894,13 @@ static inline void task_group_account_field(struct task_struct *p, int index,
 #endif
 }
 
+#ifdef CONFIG_ZRAM_FOR_ANDROID
+unsigned long this_cpu_loadx(int i)
+{
+	struct rq *this = this_rq();
+	return this->cpu_load[i];
+}
+#endif
 
 /*
  * Account user cpu time to a process.

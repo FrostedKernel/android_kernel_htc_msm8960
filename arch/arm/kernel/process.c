@@ -249,6 +249,10 @@ EXPORT_SYMBOL(pm_idle);
  * things like cpuidle get called in the same way.  The only difference
  * is that we always respect 'hlt_counter' to prevent low power idle.
  */
+#ifdef CONFIG_ZRAM_FOR_ANDROID
+extern void could_cswap(void);
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
+
 void cpu_idle(void)
 {
 	local_fiq_enable();
@@ -264,6 +268,10 @@ void cpu_idle(void)
 			 * to ensure we don't miss a wakeup call.
 			 */
 			local_irq_disable();
+#ifdef CONFIG_ZRAM_FOR_ANDROID
+			could_cswap();
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
+
 #ifdef CONFIG_PL310_ERRATA_769419
 			wmb();
 #endif

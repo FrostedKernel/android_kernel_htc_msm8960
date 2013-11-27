@@ -2151,6 +2151,7 @@ out_free_group_list:
 	return retval;
 }
 
+#ifndef CONFIG_ZRAM_FOR_ANDROID
 static int cgroup_allow_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
 {
 	struct cgroup_subsys *ss;
@@ -2168,6 +2169,7 @@ static int cgroup_allow_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
 
 	return 0;
 }
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
 
 /*
  * Find the task_struct of the task to attach by vpid and pass it along to the
@@ -2177,7 +2179,9 @@ static int cgroup_allow_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
 static int attach_task_by_pid(struct cgroup *cgrp, u64 pid, bool threadgroup)
 {
 	struct task_struct *tsk;
+#ifndef CONFIG_ZRAM_FOR_ANDROID
 	const struct cred *cred = current_cred(), *tcred;
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
 	int ret;
 
 	if (!cgroup_lock_live_group(cgrp))
@@ -2196,6 +2200,7 @@ retry_find_task:
 		 * even if we're attaching all tasks in the thread group, we
 		 * only need to check permissions on one of them.
 		 */
+#ifndef CONFIG_ZRAM_FOR_ANDROID
 		tcred = __task_cred(tsk);
 		if (cred->euid &&
 		    cred->euid != tcred->uid &&
@@ -2213,6 +2218,7 @@ retry_find_task:
 				goto out_unlock_cgroup;
 			}
 		}
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
 	} else
 		tsk = current;
 
