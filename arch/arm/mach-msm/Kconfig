@@ -1593,16 +1593,22 @@ config MSM_CPU_FREQ_MIN
 endif # CPU_FREQ_MSM
 
 config GPU_OVERCLOCK
-  bool "Enable GPU Overclocking option"
-  default n
-  help
-    Krait S4 GPU overclocking 
-
-config CPU_OVERCLOCK
-	bool "Enable CPU Overclocking option"
+	bool "Enable GPU Overclocking"
 	default n
 	help
-	  Enable CPU overclock for Krait S4 socs
+	  Krait S4 GPU Overclocking 
+
+config CPU_OVERCLOCK
+	bool "Enable CPU Overclocking"
+	default n
+	help
+	  Krait S4 CPU Overclocking 
+
+config CPU_UNDERCLOCK
+	bool "Enable CPU Underclocking"
+	default n
+	help
+	  Krait S4 CPU Underclocking 
 
 config CPU_VOLTAGE_TABLE
 	bool "Enable CPU Voltage Table via sysfs for adjustements"
