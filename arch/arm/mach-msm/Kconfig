@@ -2567,6 +2567,8 @@ config MSM_L2_ERP_2BIT_PANIC
 	  For production builds, it may be acceptable to say 'N' here, since
 	  an uncorrectable error might not necessarily cause further problems.
 
+source "arch/arm/hotplug/Kconfig"
+
 #
 # CPU Hotplug Driver Choice
 #
@@ -2584,6 +2586,10 @@ config MSM_MPDEC
 	help
 	  This enables kernel based multi core control.
 	  (up/down hotplug based on load)
+
+config INTELLI_PLUG_HOTPLUG
+	bool "Enable Intelli_Plug"
+	select INTELLI_PLUG
 endchoice
 
 #
