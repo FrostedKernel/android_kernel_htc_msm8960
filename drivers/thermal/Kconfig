@@ -77,6 +77,7 @@ config THERMAL_MONITOR
 	bool "Monitor thermal state and limit CPU Frequency"
 	depends on THERMAL_TSENS8960 || THERMAL_TSENS8974
 	depends on CPU_FREQ_MSM
+	depends on MSM_THERMAL
 	default n
 	help
 	  This enables thermal monitoring capability in the kernel in the
@@ -95,9 +96,32 @@ config SPEAR_THERMAL
 config BRICKED_THERMAL
 	tristate "Bricked thermal monitor based on pre core-control msm_thermal"
 	depends on THERMAL_TSENS8960 || THERMAL_TSENS8974
+	depends on THERMAL_MONITOR
 	depends on CPU_FREQ_MSM
+	depends on MSM_THERM
 	default n
 	help
 	  This enables thermal monitoring capability in the kernel.
 	  Monitors TSENS temperature and limits the max frequency of the cores.
 	  This replaces the qcom msm_thermal when defined!
+
+choice
+	prompt "Thermal Monitors for MSM"
+	default MSM_THERMAL
+	
+config MSM_THERMAL
+	bool "Default MSM_THERMAL"
+	select on THERMAL_MONITOR
+
+config MSM_THERM
+	bool "Bricked Thermal Monitor
+	select on BRICKED_THERMAL
+
+config INTELLI_THERMAL
+	bool "Better thermal monitor for MSM"
+	depends on THERMAL_TSENS8960 || THERMAL_TSENS8974
+	depends on CPU_FREQ_MSM
+	help
+	  This enables thermal monitoring capability in the kernel replacing
+	  userspace thermal monitoring altogether.
+endchoice
