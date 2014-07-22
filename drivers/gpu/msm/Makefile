@@ -25,13 +25,10 @@ msm_adreno-y += \
 	adreno_drawctxt.o \
 	adreno_postmortem.o \
 	adreno_snapshot.o \
-	adreno_a2xx.o \
-	adreno_a2xx_trace.o \
-	adreno_a2xx_snapshot.o \
-	adreno_a3xx.o \
-	adreno_a3xx_trace.o \
-	adreno_a3xx_snapshot.o \
 	adreno.o
+
+msm_adreno-$(CONFIG_MSM_ADRENO_2XX) += adreno_a2xx.o adreno_a2xx_trace.o adreno_a2xx_snapshot.o
+msm_adreno-$(CONFIG_MSM_ADRENO_3XX) +=  adreno_a3xx.o adreno_a3xx_trace.o adreno_a3xx_snapshot.o
 
 msm_adreno-$(CONFIG_DEBUG_FS) += adreno_debugfs.o
 

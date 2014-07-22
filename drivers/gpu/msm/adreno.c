@@ -189,6 +189,7 @@ static const struct {
 	   between CPU and GPU for SMMU-v1 programming */
 	unsigned int sync_lock_pfp_ver;
 } adreno_gpulist[] = {
+#ifdef CONFIG_MSM_ADRENO_2XX 
 	{ ADRENO_REV_A200, 0, 2, ANY_ID, ANY_ID,
 		"yamato_pm4.fw", "yamato_pfp.fw", &adreno_a2xx_gpudev,
 		512, 384, 3, SZ_256K, NO_VER, NO_VER },
@@ -214,6 +215,8 @@ static const struct {
 	{ ADRENO_REV_A225, 2, 2, ANY_ID, ANY_ID,
 		"a225_pm4.fw", "a225_pfp.fw", &adreno_a2xx_gpudev,
 		1536, 768, 3, SZ_512K, 0x225011, 0x225002 },
+#endif
+#ifdef CONFIG_MSM_ADRENO_3XX 
 	/* A3XX doesn't use the pix_shader_start */
 	{ ADRENO_REV_A305, 3, 0, 5, ANY_ID,
 		"a300_pm4.fw", "a300_pfp.fw", &adreno_a3xx_gpudev,
@@ -225,6 +228,7 @@ static const struct {
 	{ ADRENO_REV_A330, 3, 3, 0, ANY_ID,
 		"a330_pm4.fw", "a330_pfp.fw", &adreno_a3xx_gpudev,
 		512, 0, 2, SZ_1M, NO_VER, NO_VER },
+#endif
 };
 
 static unsigned int adreno_isidle(struct kgsl_device *device);
@@ -1661,6 +1665,7 @@ static int adreno_start(struct kgsl_device *device)
 	ft_detect_regs[0] = adreno_dev->gpudev->reg_rbbm_status;
 
 	/* Add A3XX specific registers for hang detection */
+#ifdef CONFIG_MSM_ADRENO_3XX 
 	if (adreno_is_a3xx(adreno_dev)) {
 		ft_detect_regs[6] = A3XX_RBBM_PERFCTR_SP_7_LO;
 		ft_detect_regs[7] = A3XX_RBBM_PERFCTR_SP_7_HI;
@@ -1669,7 +1674,7 @@ static int adreno_start(struct kgsl_device *device)
 		ft_detect_regs[10] = A3XX_RBBM_PERFCTR_SP_5_LO;
 		ft_detect_regs[11] = A3XX_RBBM_PERFCTR_SP_5_HI;
 	}
-
+#endif
 	status = kgsl_mmu_start(device);
 	if (status)
 		goto error_clk_off;

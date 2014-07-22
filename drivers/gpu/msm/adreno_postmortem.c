@@ -353,6 +353,7 @@ static void adreno_dump_fields(struct kgsl_device *device,
 	}
 }
 
+#ifdef CONFIG_MSM_ADRENO_3XX 
 static void adreno_dump_a3xx(struct kgsl_device *device)
 {
 	unsigned int r1, r2, r3, rbbm_status;
@@ -498,7 +499,8 @@ static void adreno_dump_a3xx(struct kgsl_device *device)
 		adreno_dump_fields(device, "INT_SGNL=", ints, ARRAY_SIZE(ints));
 	}
 }
-
+#endif
+#ifdef CONFIG_MSM_ADRENO_2XX 
 static void adreno_dump_a2xx(struct kgsl_device *device)
 {
 	unsigned int r1, r2, r3, rbbm_status;
@@ -675,6 +677,7 @@ static void adreno_dump_a2xx(struct kgsl_device *device)
 	KGSL_LOG_DUMP(device,
 		"MH_INTERRUPT: MASK = %08X | STATUS   = %08X\n", r1, r2);
 }
+#endif
 
 int adreno_dump(struct kgsl_device *device, int manual)
 {
@@ -703,10 +706,18 @@ int adreno_dump(struct kgsl_device *device, int manual)
 	mb();
 
 	if (device->pm_dump_enable) {
+#ifdef CONFIG_MSM_ADRENO_2XX 
 		if (adreno_is_a2xx(adreno_dev))
 			adreno_dump_a2xx(device);
-		else if (adreno_is_a3xx(adreno_dev))
+		else {
+#endif
+#ifdef CONFIG_MSM_ADRENO_3XX 
+			if (adreno_is_a3xx(adreno_dev))
 			adreno_dump_a3xx(device);
+#endif
+#ifdef CONFIG_MSM_ADRENO_2XX 
+		}
+#endif
 	}
 
 	kgsl_regread(device, adreno_dev->gpudev->reg_rbbm_status, &rbbm_status);
@@ -881,6 +892,7 @@ int adreno_dump(struct kgsl_device *device, int manual)
 
 	/* Dump the registers if the user asked for it */
 	if (device->pm_regs_enabled) {
+#ifdef CONFIG_MSM_ADRENO_2XX 
 		if (adreno_is_a20x(adreno_dev))
 			adreno_dump_regs(device, a200_registers,
 					a200_registers_count);
@@ -890,14 +902,21 @@ int adreno_dump(struct kgsl_device *device, int manual)
 		else if (adreno_is_a225(adreno_dev))
 			adreno_dump_regs(device, a225_registers,
 				a225_registers_count);
-		else if (adreno_is_a3xx(adreno_dev)) {
-			adreno_dump_regs(device, a3xx_registers,
-					a3xx_registers_count);
+		else {
+#endif
+#ifdef CONFIG_MSM_ADRENO_3XX 
+			if (adreno_is_a3xx(adreno_dev)) {
+				adreno_dump_regs(device, a3xx_registers,
+						a3xx_registers_count);
 
-			if (adreno_is_a330(adreno_dev))
-				adreno_dump_regs(device, a330_registers,
-					a330_registers_count);
+				if (adreno_is_a330(adreno_dev))
+					adreno_dump_regs(device, a330_registers,
+						a330_registers_count);
+			}
+#endif
+#ifdef CONFIG_MSM_ADRENO_2XX 
 		}
+#endif
 	}
 
 error_vfree:
