@@ -138,6 +138,11 @@ config CPU_FREQ_DEFAULT_GOV_INTELLIMM
           Use the CPUFreq governor 'intelliminmax' as default. This is
           governor will use only 3 different frequencies, idle, UI and max
 
+config CPU_FREQ_DEFAULT_GOV_LIONHEART
+	bool "lionheart"
+	select CPU_FREQ_GOV_LIONHEART
+	help
+	Lionheart is a conservative-based governor which is based on samsung's update3 source
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -307,6 +312,10 @@ config CPU_FREQ_GOV_INTELLIMM
           For details, take a look at linux/Documentation/cpu-freq.
 
           If in doubt, say N.
+
+config CPU_FREQ_GOV_LIONHEART
+	tristate "'lionheart' cpufreq governor"
+	depends on CPU_FREQ
 
 menu "x86 CPU frequency scaling drivers"
 depends on X86
