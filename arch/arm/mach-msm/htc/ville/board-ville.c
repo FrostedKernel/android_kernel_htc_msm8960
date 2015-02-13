@@ -1761,7 +1761,6 @@ static struct cm3629_platform_data cm36282_TMO_EN1_pdata = {
 	.ps_conf2_val = CM3629_PS_ITB_1 | CM3629_PS_ITR_1 |
 			CM3629_PS2_INT_DIS | CM3629_PS1_INT_DIS,
 	.ps_conf3_val = CM3629_PS2_PROL_32,
-	.no_need_change_setting = 1,
 };
 static struct i2c_board_info i2c_CM36282_TMO_EN1_devices[] = {
 	{
@@ -1814,7 +1813,6 @@ static struct cm3629_platform_data cm36282_XD_EN1_pdata = {
 	.ps_conf2_val = CM3629_PS_ITB_1 | CM3629_PS_ITR_1 |
 			CM3629_PS2_INT_DIS | CM3629_PS1_INT_DIS,
 	.ps_conf3_val = CM3629_PS2_PROL_32,
-	.no_need_change_setting = 1,
 };
 
 static struct i2c_board_info i2c_CM36282_XD_EN1_devices[] = {

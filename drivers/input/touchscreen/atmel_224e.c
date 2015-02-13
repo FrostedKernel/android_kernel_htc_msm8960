@@ -34,6 +34,9 @@
 #include <linux/input/cy8c_cs.h>
 #endif
 
+//#define ATMEL_224E_DEBUG
+#undef ATMEL_224E_DEBUG
+
 #define ATMEL_EN_SYSFS
 #define ATMEL_I2C_RETRY_TIMES 10
 
@@ -282,10 +285,11 @@ static int register_sr_touch_device(void)
 	ts->sr_input_dev->mtsize = ts->finger_support;
 	input_set_abs_params(ts->sr_input_dev, ABS_MT_TRACKING_ID,
 		0, ts->finger_support - 1, 0, 0);
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP][SR]input_set_abs_params: mix_x %d, max_x %d,"
 		" min_y %d, max_y %d\n", ts->abs_x_min, ts->abs_x_max,
 		ts->abs_y_min, ts->abs_y_max);
-
+#endif
 	input_set_abs_params(ts->sr_input_dev, ABS_MT_POSITION_X,
 				ts->abs_x_min, ts->abs_x_max, 0, 0);
 	input_set_abs_params(ts->sr_input_dev, ABS_MT_POSITION_Y,
@@ -310,12 +314,19 @@ static ssize_t set_en_sr(struct device *dev, struct device_attribute *attr,
 						const char *buf, size_t count)
 {
 	struct atmel_ts_data *ts = private_ts;
+#ifdef ATMEL_224E_DEBUG
 	if (buf[0]) {
 		if (ts->sr_input_dev)
 			printk(KERN_INFO "[TP]%s: SR device already exist!\n", __func__);
 		else
 			printk(KERN_INFO "[TP]%s: SR touch device enable result:%X\n", __func__, register_sr_touch_device());
 	}
+#else
+	if (buf[0]) 
+		if (!ts->sr_input_dev)
+			register_sr_touch_device();
+
+#endif
 	return count;
 }
 
@@ -337,13 +348,16 @@ static ssize_t atmel_reset(struct device *dev, struct device_attribute *attr,
 			msleep(5);
 			gpio_set_value(pdata->gpio_rst, 1);
 			msleep(40);
-
+#ifdef ATMEL_224E_DEBUG
 			pr_info("[TP] Reset Atmel Chip\n");
 		} else
 			pr_info("[TP] Reset pin NOT ASSIGN\n");
 	} else
 		pr_info("[TP] Parameter Error\n");
-
+#else
+		}
+	}
+#endif
 	return count;
 }
 static DEVICE_ATTR(reset, (S_IWUSR|S_IRUGO), NULL, atmel_reset);
@@ -365,7 +379,9 @@ static ssize_t set_htc_event(struct device *dev, struct device_attribute *attr,
 	unsigned long mode;
 	ret = strict_strtoul(buf, 10, &mode);
 	htc_event_enable = mode;
+#ifdef ATMEL_224E_DEBUG
 	pr_info("[TP]htc event enable = %d\n", htc_event_enable);
+#endif
 	return count;
 }
 
@@ -381,9 +397,13 @@ static ssize_t stop_touch(struct device *dev, struct device_attribute *attr,
 	int i;
 	if (sscanf(buf, "%d", &i) == 1 && i < 2) {
 		disable_touch = i;
+#ifdef ATMEL_224E_DEBUG
 		pr_info("[TP] Touch Report %s!!\n", i ? "STOP" : "Work");
 	} else
 		pr_info("[TP] Parameter Error\n");
+#else
+	}
+#endif
 	return count;
 }
 static ssize_t stop_touch_show(struct device *dev, struct device_attribute *attr, char *buf)
@@ -403,7 +423,9 @@ static ssize_t atmel_gpio_show(struct device *dev, struct device_attribute *attr
 	pdata = ts_data->client->dev.platform_data;
 
 	ret = gpio_get_value(pdata->gpio_irq);
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_DEBUG "[TP]GPIO_TP_INT_N=%d\n", pdata->gpio_irq);
+#endif
 	sprintf(buf, "GPIO_TP_INT_N=%d\n", ret);
 	ret = strlen(buf) + 1;
 	return ret;
@@ -459,13 +481,17 @@ static ssize_t atmel_register_store(struct device *dev,
 								__func__);
 			return count;
 		}
+#ifdef ATMEL_224E_DEBUG
 		printk(KERN_DEBUG "[TP]%s: set atmel_reg_addr is: %ld\n",
 						__func__, atmel_reg_addr);
+#endif
 		if (buf[0] == 'w' && buf[5] == ':' && buf[9] == '\n') {
 			memcpy(buf_tmp, buf + 6, 3);
 			ret = strict_strtoul(buf_tmp, 10, &write_da);
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_DEBUG "[TP]write addr: 0x%lX, data: 0x%lX\n",
 						atmel_reg_addr, write_da);
+#endif
 			ret = i2c_atmel_write_byte_data(ts_data->client,
 						atmel_reg_addr, write_da);
 			if (ret < 0) {
@@ -652,8 +678,9 @@ static ssize_t atmel_diag_show(struct device *dev,
 				get_object_address(ts_data, DIAGNOSTIC_T37), data, 2);
 		}
 		if (loop_j == 10)
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]%s: Diag data not ready\n", __func__);
-
+#endif
 		i2c_atmel_read(ts_data->client,
 			get_object_address(ts_data, DIAGNOSTIC_T37) +
 			T37_DATA, data, T37_PAGE_SIZE);
@@ -703,9 +730,9 @@ static ssize_t atmel_unlock_store(struct device *dev,
 
 	if (buf[0] >= '0' && buf[0] <= '9' && buf[1] == '\n')
 		unlock = buf[0] - '0';
-
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP]unlock change to %d\n", unlock);
-
+#endif
 	if (!ts_data->unlock_attr)
 		return count;
 
@@ -728,8 +755,10 @@ static ssize_t atmel_unlock_store(struct device *dev,
 		if (time_after(jiffies, ts_data->safe_unlock_timeout))
 			queue_delayed_work(ts_data->atmel_delayed_wq, &ts_data->unlock_work,
 				msecs_to_jiffies(ATCHCAL_DELAY));
+#ifdef ATMEL_224E_DEBUG
 		else
 			printk(KERN_INFO "[TP]unsafe unlock, give up delta check\n");
+#endif
 	}
 
 	return count;
@@ -753,7 +782,7 @@ static struct kobject *android_touch_kobj;
 static int atmel_touch_sysfs_init(void)
 {
 	int ret;
-	android_touch_kobj = kobject_create_and_add("android_touch", NULL);
+	android_touch_kobj = kobject_create_and_add("android_touchscreen", NULL);
 	if (android_touch_kobj == NULL) {
 		printk(KERN_ERR "[TP]TOUCH_ERR: subsystem_register failed\n");
 		ret = -ENOMEM;
@@ -899,9 +928,11 @@ static int check_delta_full(struct atmel_ts_data *ts,
 	}
 
 	if (pos_cnt + neg_cnt > node_thr_cnt) {
+#ifdef ATMEL_224E_DEBUG
 		if (print_log)
 			printk(KERN_INFO "[TP]channels C=%d P=%d N=%d T=%d\n",
 				cnt, pos_cnt, neg_cnt, node_thr_cnt);
+#endif
 		return 1;
 	}
 
@@ -961,12 +992,14 @@ static void confirm_calibration(struct atmel_ts_data *ts,
 		i2c_atmel_write_byte_data(ts->client,
 			get_object_address(ts, GEN_COMMANDPROCESSOR_T6) +
 			T6_CFG_CALIBRATE, 0x55);
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP]calibration confirm %sby %s\n",
 		recal ? "with recal " : "",
 		(reason == 0) ? "position" :
 		(reason == 1) ? "clicks" :
 		(reason == 2) ? "delta" :
 		(reason == 3) ? "suspend" : "unknown");
+#endif
 }
 
 static void msg_process_finger_data(struct atmel_ts_data *ts,
@@ -1030,8 +1063,10 @@ static void msg_process_multitouch(struct atmel_ts_data *ts, uint8_t *data, uint
 		if (!ts->first_pressed) {
 			if (ts->finger_count == 0)
 				ts->first_pressed = 1;
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]E%d@%d,%d\n",
 				idx + 1, ts->finger_data[idx].x, ts->finger_data[idx].y);
+#endif
 		}
 
 		switch (ts->pre_data[0]) {
@@ -1132,7 +1167,9 @@ static void msg_process_noisesuppression(struct atmel_ts_data *ts, uint8_t *data
 	ts->noise_state = data[T48_MSG_STATE];
 	if (ts->id->version >= 0x11 && ts->noiseLine_config[0] && ts->status == CONNECTED) {
 		if (!ts->noiseLine_status && data[5] >= 0x15) {
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]noiseLine change\n");
+#endif
 			ts->noiseLine_status = 1;
 			i2c_atmel_write_byte_data(ts->client,
 				get_object_address(ts, TOUCH_MULTITOUCHSCREEN_T9) +
@@ -1164,7 +1201,9 @@ static void msg_process_noisesuppression(struct atmel_ts_data *ts, uint8_t *data
 		if (ts->noise_err_count < 3)
 			ts->noise_err_count++;
 		if (ts->noise_err_count == 2) {
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]mferr change\n");
+#endif
 			if (ts->id->build == 0xAA) {
 				for (i = 0; i < ts->mferr_config.cnt; i++)
 					i2c_atmel_write_byte_data(ts->client,
@@ -1230,7 +1269,9 @@ static void multi_input_report(struct atmel_ts_data *ts)
 				if (htc_event_enable == 0) {
 #if defined(CONFIG_TOUCH_KEY_FILTER)
 					if (ts->finger_data[loop_i].y > ts->flt_th && ts->key_bypass == 1) {
+#ifdef ATMEL_224E_DEBUG
 						pr_info("[TP] key_bypass\n");
+#endif
 						ts->key_bypass = 0;
 					} else
 #endif
@@ -1239,12 +1280,14 @@ static void multi_input_report(struct atmel_ts_data *ts)
 				} else
 					htc_input_report(ts->input_dev, &ts->finger_data[loop_i],
 							1, (ts->finger_count == ++finger_report));
+#ifdef ATMEL_224E_DEBUG
 				if (ts->debug_log_level & 0x2)
 					printk(KERN_INFO "[TP]Finger %d=> X:%d, Y:%d, w:%d, z:%d, F:%d\n",
 						loop_i + 1,
 						ts->finger_data[loop_i].x, ts->finger_data[loop_i].y,
 						ts->finger_data[loop_i].w, ts->finger_data[loop_i].z,
 						ts->finger_count);
+#endif
 			} else
 				return;
 		}
@@ -1257,20 +1300,23 @@ static irqreturn_t atmel_irq_thread(int irq, void *ptr)
 	struct atmel_ts_data *ts = ptr;
 	uint8_t data[7];
 	int8_t report_num;
-	uint8_t loop_i, loop_j, msg_byte_num = 7;
+#ifdef ATMEL_224E_DEBUG
+	uint8_t loop_i; 
+#endif
+	uint8_t loop_j, msg_byte_num = 7;
 
 	memset(data, 0x0, sizeof(data));
 
 	ret = i2c_atmel_read(ts->client, get_object_address(ts,
 		GEN_MESSAGEPROCESSOR_T5), data, 7);
-
+#ifdef ATMEL_224E_DEBUG
 	if (ts->debug_log_level & 0x1) {
 		printk(KERN_INFO "[TP]");
 		for (loop_i = 0; loop_i < 7; loop_i++)
 			printk("0x%2.2X ", data[loop_i]);
 		printk("\n");
 	}
-
+#endif
 	report_num = data[MSG_RID] - ts->finger_type;
 	if (report_num >= 0 && report_num < ts->finger_support) {
 		msg_process_multitouch(ts, data, report_num);
@@ -1288,12 +1334,16 @@ static irqreturn_t atmel_irq_thread(int irq, void *ptr)
 						msecs_to_jiffies(SAFE_TIMEOUT);
 				}
 			}
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]Touch Status: ");
+#endif
 			msg_byte_num = 5;
 		} else if (data[MSG_RID] == get_rid(ts, PROCI_TOUCHSUPPRESSION_T42)) {
 			ts->face_suppression = data[T42_MSG_STATUS];
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "Touch suppression %s: ",
 				ts->face_suppression ? "Active" : "Inactive");
+#endif
 			msg_byte_num = 2;
 		} else if (data[MSG_RID] == get_rid(ts, PROCG_NOISESUPPRESSION_T48)) {
 			if (ts->id->version < 0x11)
@@ -1305,12 +1355,16 @@ static irqreturn_t atmel_irq_thread(int irq, void *ptr)
 					msg_byte_num = 0;
 			} else
 				msg_byte_num = 6;
+#ifdef ATMEL_224E_DEBUG
 			if (msg_byte_num)
 				printk(KERN_INFO "[TP]Touch Noise suppression: ");
+#endif
 			msg_process_noisesuppression(ts, data);
-		} else
+		} 
+#ifdef ATMEL_224E_DEBUG
+		else
 			printk(KERN_INFO "[TP]Touch Unhandled: ");
-
+#endif
 		if (data[MSG_RID] != 0xFF) {
 			for (loop_j = 0; loop_j < msg_byte_num; loop_j++)
 				printk("0x%2.2X ", data[loop_j]);
@@ -1324,9 +1378,10 @@ static irqreturn_t atmel_irq_thread(int irq, void *ptr)
 		if (!ts->finger_count || ts->face_suppression) {
 			ts->finger_pressed = 0;
 			ts->finger_count = 0;
-
+#ifdef ATMEL_224E_DEBUG
 			if (ts->debug_log_level & 0x2)
 				printk(KERN_INFO "[TP]Finger leave\n");
+#endif
 		} else {
 			if (ts->repeat_flag == 0) {
 				multi_input_report(ts);
@@ -1336,7 +1391,9 @@ static irqreturn_t atmel_irq_thread(int irq, void *ptr)
 		}
 	} else {
 		if (!ts->finger_count || ts->face_suppression) {
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP] Total finger count: %d\n", ts->finger_count);
+#endif
 			ts->finger_pressed = 0;
 			ts->finger_count = 0;
 			if (htc_event_enable == 0)
@@ -1346,9 +1403,10 @@ static irqreturn_t atmel_irq_thread(int irq, void *ptr)
 
 			if (htc_event_enable == 0 || disable_touch == 0)
 				input_sync(ts->input_dev);
-
+#ifdef ATMEL_224E_DEBUG
 			if (ts->debug_log_level & 0x2)
 				printk(KERN_INFO "[TP]Finger leave\n");
+#endif
 		} else {
 			if (ts->repeat_flag == 0) {
 				multi_input_report(ts);
@@ -1419,11 +1477,11 @@ static void atmel_ts_unlock_work_func(struct work_struct *work)
 					msecs_to_jiffies(ATCHCAL_DELAY));
 		}
 	}
-
-	return;
-
 give_up:
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP]give up delta check\n");
+#endif
+	return;
 }
 
 #if defined(CONFIG_TOUCHSCREEN_ATMEL_DETECT_USB_VBUS)
@@ -1472,8 +1530,9 @@ static int wlc_tp_status_handler_func(struct notifier_block *this,
 	int wlc_status;
 
 	wlc_status = connect_status > 0 ? CONNECTED : NONE;
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP]wireless charger %d\n", wlc_status);
-
+#endif
 	ts = private_ts;
 	if (ts->status)
 		printk(KERN_ERR "[TP]TOUCH_ERR:ambigurous wireless charger state\n");
@@ -1522,14 +1581,17 @@ static void cable_tp_status_handler_func(int connect_status)
 		return;
 	}
 #endif
-
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP]cable change to %d\n", connect_status);
-
+#endif
 	if (connect_status != ts->status) {
 		ts->status = connect_status ? CONNECTED : NONE;
+#ifdef ATMEL_224E_DEBUG
 		printk(KERN_INFO "[TP]ts->status change to %d\n", ts->status);
+
 		if (!ts->status && ts->wlc_status)
 			printk(KERN_ERR "[TP]TOUCH_ERR:ambigurous wireless charger state\n");
+#endif
 		if (ts->status && ts->wlc_status) {
 			mutex_lock(&reload_lock);
 			i2c_atmel_write(ts->client,
@@ -1537,8 +1599,10 @@ static void cable_tp_status_handler_func(int connect_status)
 				ts->config_setting[NONE].config_T48,
 				get_object_size(ts, PROCG_NOISESUPPRESSION_T48));
 			mutex_unlock(&reload_lock);
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]cable %s overrides wireless charger\n",
 				ts->status ? "in" : "out");
+#endif
 			ts->wlc_status = NONE;
 		}
 		if (ts->config_setting[CONNECTED].config[0]) {
@@ -1587,7 +1651,9 @@ void cable_tp_status_vbus_handler_func(int code)
 	ts = private_ts;
 	ts->cable_vbus_status = code;
 	ret = queue_work(ts->atmel_cable_vbus_wq, &ts->cable_vbus_work);
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP]cable_tp_status_vbus_handler_func: %d, ret = %d\n", code, ret);
+#endif
 }
 #endif
 
@@ -1617,11 +1683,13 @@ static int read_object_table(struct atmel_ts_data *ts)
 		}
 		if (data[OBJ_TABLE_TYPE] == TOUCH_MULTITOUCHSCREEN_T9)
 			ts->finger_type = ts->object_table[i].report_ids;
+#ifdef ATMEL_224E_DEBUG
 		printk(KERN_INFO
 			"[TP]Type: %2.2X, Start: %4.4X, Size: %2X, Instance: %2X, RD#: %2X, %2X\n",
 			ts->object_table[i].object_type , ts->object_table[i].i2c_address,
 			ts->object_table[i].size, ts->object_table[i].instances,
 			ts->object_table[i].num_report_ids, ts->object_table[i].report_ids);
+#endif
 	}
 
 	return 0;
@@ -1656,8 +1724,9 @@ static void erase_config(struct atmel_ts_data *ts_data, int intr)
 {
 	uint16_t startAddr, endAddr, loop_i, ret;
 	uint8_t data[7] = {0};
-
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP]Erase Config\n");
+#endif
 	startAddr = get_object_address(ts_data, GEN_POWERCONFIG_T7);
 	if (ts_data->id->version < 0x11) {
 		endAddr = get_object_address(ts_data, PROCG_NOISESUPPRESSION_T48);
@@ -1676,16 +1745,19 @@ static void erase_config(struct atmel_ts_data *ts_data, int intr)
 	for (loop_i = 0; loop_i < 10; loop_i++) {
 		if (!gpio_get_value(intr))
 			break;
+#ifdef ATMEL_224E_DEBUG
 		printk(KERN_INFO "[TP]wait for Message(%d)\n", loop_i + 1);
+#endif
 		msleep(10);
 	}
 
 	i2c_atmel_read(ts_data->client,
 		get_object_address(ts_data, GEN_MESSAGEPROCESSOR_T5), data, 7);
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO
 		"[TP]0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X\n",
 		data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
-
+#endif
 	ret = i2c_atmel_write_byte_data(ts_data->client,
 		get_object_address(ts_data, GEN_COMMANDPROCESSOR_T6) +
 		T6_CFG_RESET, 0x11);
@@ -1759,7 +1831,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 		ts->power = pdata->power;
 		intr = pdata->gpio_irq;
 	} else {
+#ifdef ATMEL_224E_DEBUG
 		printk(KERN_INFO "[TP]No pdata information\n");
+#endif
 		goto err_detect_failed;
 	}
 
@@ -1771,10 +1845,10 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 			break;
 		msleep(10);
 	}
-
+#ifdef ATMEL_224E_DEBUG
 	if (loop_i == 10)
 		printk(KERN_INFO "[TP]No Messages after reset\n");
-
+#endif
 	htc_event_enable = 0;
 
 	/* read message*/
@@ -1785,7 +1859,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 	ret = i2c_transfer(client->adapter, msg, 1);
 
 	if (ret < 0) {
+#ifdef ATMEL_224E_DEBUG
 		printk(KERN_INFO "[TP]No Atmel chip inside\n");
+#endif
 		goto err_detect_failed;
 	}
 
@@ -1793,11 +1869,11 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 	if (ts->power)
 		ret = ts->power(2);
 #endif
-
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO
 		"[TP]0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X\n",
 		data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
-
+#endif
 	if (data[MSG_RID] == 0x01 &&
 		(data[T6_MSG_STATUS] & (T6_MSG_STATUS_SIGERR|T6_MSG_STATUS_COMSERR))) {
 		printk(KERN_ERR "[TP]TOUCH_ERR: init err: %x\n", data[T6_MSG_STATUS]);
@@ -1809,10 +1885,11 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 				break;
 			}
 			ret = i2c_transfer(client->adapter, msg, 1);
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO
 				"[TP]0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X\n",
 				data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
-
+#endif
 			if (!config_err && data[MSG_RID] == 0x01 && (data[T6_MSG_STATUS] & T6_MSG_STATUS_CFGERR))
 				config_err = 1;
 
@@ -1835,18 +1912,19 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 	ts->id->matrix_x_size = data[INFO_BLK_XSIZE];
 	ts->id->matrix_y_size = data[INFO_BLK_YSIZE];
 	ts->id->num_declared_objects = data[INFO_BLK_OBJS];
-
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO
 		"[TP]info block: 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X\n",
 		ts->id->family_id, ts->id->variant_id,
 		ts->id->version, ts->id->build,
 		ts->id->matrix_x_size, ts->id->matrix_y_size,
 		ts->id->num_declared_objects);
-
+#endif
 	ret = i2c_atmel_read(client, 258, cfgdata, 2);
+#ifdef ATMEL_224E_DEBUG
 	if (cfgdata[0])
 		pr_info("[TP]reg[258]=%x\n", cfgdata[0]);
-
+#endif
 	/* Read object table. */
 	ret = read_object_table(ts);
 	if (ret < 0)
@@ -1859,7 +1937,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 			while (pdata->build != 0xF8)
 				pdata++;
 		if (cfgdata[0] > 0) {
+#ifdef ATMEL_224E_DEBUG
 			pr_info("[TP]pdata++\n");
+#endif
 			pdata++;
 		}
 
@@ -1899,7 +1979,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 		if ((pdata->config_T9[T9_CFG_NUMTOUCH] > 0) && (pdata->config_T9[T9_CFG_NUMTOUCH] <= 10)) {
 			ts->finger_support = pdata->config_T9[T9_CFG_NUMTOUCH];
 		} else {
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]T9_CFG_NUMTOUCH=%d is over range (1~10)!!\n", pdata->config_T9[T9_CFG_NUMTOUCH]);
+#endif
 			goto err_alloc_failed;
 		}
 
@@ -1918,12 +2000,13 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 			if (y_range >= 1024)
 				ts->high_res_x_en = 1;
 		}
+#ifdef ATMEL_224E_DEBUG
 		printk(KERN_INFO
 			"[TP]finger_type: %d, max finger: %d%s%s\n",
 			ts->finger_type, ts->finger_support,
 			ts->high_res_x_en ? ", x: 12-bit" : "",
 			ts->high_res_y_en ? ", y: 12-bit" : "");
-
+#endif
 		/* infoamtion block CRC check */
 		if (pdata->object_crc[0]) {
 			ret = i2c_atmel_write_byte_data(client,
@@ -1938,6 +2021,7 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 				}
 				msleep(10);
 			}
+#ifdef ATMEL_224E_DEBUG
 			if (loop_i == 10)
 				printk(KERN_INFO "[TP]No checksum read\n");
 			else {
@@ -1963,6 +2047,15 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 					CRC_check = 1;
 				}
 			}
+#else
+			if (loop_i != 10) {
+				for (loop_i = 0; loop_i < 3; loop_i++)
+					if (pdata->object_crc[loop_i] != data[T6_MSG_CHECKSUM + loop_i])
+						break;
+				if (loop_i == 3)
+					CRC_check = 1;
+			}
+#endif
 		}
 		ts->abs_x_min = pdata->abs_x_min;
 		ts->abs_x_max = pdata->abs_x_max;
@@ -2016,9 +2109,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 		if (pdata->noise_config[0])
 			for (loop_i = 0; loop_i < 3; loop_i++)
 				ts->noise_config[loop_i] = pdata->noise_config[loop_i];
-
+#ifdef ATMEL_224E_DEBUG
 		pr_info("[TP] cable cnt = %d\n", pdata->cable_config.cnt);
-
+#endif
 		if (pdata->cable_config.cnt) {
 			ts->cable_config = pdata->cable_config;
 			for (loop_i = 0; loop_i < ts->cable_config.cnt; loop_i++)
@@ -2038,22 +2131,30 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 			ts->locking_config[0] = pdata->locking_config[0];
 
 		if (pdata->mferr_config.cnt) {
+#ifdef ATMEL_224E_DEBUG
 			pr_info("[TP] mferr count = %d\n", pdata->mferr_config.cnt);
+#endif
 			ts->mferr_config = pdata->mferr_config;
+#ifdef ATMEL_224E_DEBUG
 			for (loop_i = 0; loop_i < ts->mferr_config.cnt; loop_i++)
 				pr_info("[TP] mferr(%02d) obj = %02d, byte = %02d, vale = %02d\n",
 					loop_i,
 					ts->mferr_config.cfg[loop_i].objid,
 					ts->mferr_config.cfg[loop_i].byte,
 					ts->mferr_config.cfg[loop_i].value);
+#endif
 		}
 
 		if (pdata->cfm_calb.cnt) {
+#ifdef ATMEL_224E_DEBUG
 			pr_info("[TP] T8 setting :");
+#endif
 			ts->cfm_calb = pdata->cfm_calb;
+#ifdef ATMEL_224E_DEBUG
 			for (loop_i = 0; loop_i < ts->cfm_calb.cnt; loop_i++)
 				printk("%d, ", ts->cfm_calb.cfg[loop_i].value);
 			printk("\n");
+#endif
 		}
 
 		if (pdata->noiseLine_config[0])
@@ -2062,7 +2163,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 		private_ts = ts;
 
 #if defined(CONFIG_TOUCHSCREEN_ATMEL_DETECT_CABLE)
+#ifdef ATMEL_224E_DEBUG
 		pr_info("[TP] DETECT_CABLE\n");
+#endif
 		cable_detect_register_notifier(&cable_status_handler);
 #endif
 
@@ -2079,7 +2182,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 #endif
 
 		if (!CRC_check) {
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]Config reload\n");
+#endif
 			mutex_lock(&reload_lock);
 			i2c_atmel_write(ts->client,
 				get_object_address(ts, SPT_CTECONFIG_T46),
@@ -2184,10 +2289,11 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 
 			i2c_atmel_read(client,
 				get_object_address(ts, GEN_MESSAGEPROCESSOR_T5), data, 7);
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO
 				"[TP]0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X 0x%2.2X\n",
 				data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
-
+#endif
 			ret = i2c_atmel_write_byte_data(client,
 						get_object_address(ts, GEN_COMMANDPROCESSOR_T6) +
 						T6_CFG_RESET, 0x11);
@@ -2196,7 +2302,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 		}
 
 		if (ts->status == CONNECTED) {
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]set cable config\n");
+#endif
 			if (ts->config_setting[CONNECTED].config[0]) {
 
 				for (loop_i = 0; loop_i < ts->cable_config.cnt; loop_i++)
@@ -2219,7 +2327,9 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 			}
 			initial_freq_scan(ts);
 		} else if (ts->wlc_status == CONNECTED) {
+#ifdef ATMEL_224E_DEBUG
 			printk(KERN_INFO "[TP]set wireless charger config\n");
+#endif
 			if (ts->wlc_freq[0]) {
 				i2c_atmel_write_byte_data(ts->client,
 					get_object_address(ts, PROCG_NOISESUPPRESSION_T48) +
@@ -2317,10 +2427,10 @@ static int atmel_224e_ts_probe(struct i2c_client *client, const struct i2c_devic
 #ifdef ATMEL_EN_SYSFS
 	atmel_touch_sysfs_init();
 #endif
-
+#ifdef ATMEL_224E_DEBUG
 	dev_info(&client->dev, "[TP]Start touchscreen %s in interrupt mode\n",
 			ts->input_dev->name);
-
+#endif
 #if defined(CONFIG_TOUCH_KEY_FILTER)
 	register_notifier_by_touchkey(&touchkey_status_handler);
 #endif
@@ -2375,8 +2485,9 @@ static int atmel_224e_ts_remove(struct i2c_client *client)
 static int atmel_224e_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	struct atmel_ts_data *ts = i2c_get_clientdata(client);
+#ifdef ATMEL_224E_DEBUG
 	printk(KERN_INFO "[TP]%s:enter unlock 0\n", __func__);
-
+#endif
 	disable_irq(client->irq);
 
 	cancel_delayed_work_sync(&ts->unlock_work);

@@ -71,6 +71,7 @@ static int p_irq_status;
 static int prev_correction;
 static int phone_status;
 static int oncall = 0;
+static int ps_near;
 static uint8_t sensor_chipId[3] = {0};
 static uint8_t ps1_canc_set;
 static uint8_t ps2_canc_set;
@@ -558,6 +559,8 @@ static void report_psensor_input_event(struct cm3629_info *lpi, int interrupt_fl
 	} else {
 		val = (interrupt_flag == 2) ? 0 : 1;
 	}
+
+	ps_near = !val;
 
 	if (lpi->ps_debounce == 1 && lpi->mfg_mode != MFG_MODE) {
 		if (val == 0) {
@@ -1425,7 +1428,6 @@ static int lightsensor_update_table(struct cm3629_info *lpi)
 static int lightsensor_enable(struct cm3629_info *lpi)
 {
 	int ret = 0;
-	int delay = 0;
 	char cmd[3] = {0};
 
 	mutex_lock(&als_enable_mutex);
@@ -1445,16 +1447,6 @@ static int lightsensor_enable(struct cm3629_info *lpi)
 		"[LS][cm3629 error]%s: set auto light sensor fail\n",
 		__func__);
 	else {
-		if (sensor_chipId[0] != 0x29)
-			delay = 80;
-		else
-			delay = 50;
-
-		if (lpi->mfg_mode != MFG_MODE)
-			delay *= 2;
-
-		hr_msleep(delay);
-
 		input_report_abs(lpi->ls_input_dev, ABS_MISC, -1);
 		input_sync(lpi->ls_input_dev);
 		report_lsensor_input_event(lpi, 1);
@@ -2476,6 +2468,16 @@ err_free_ps_input_device:
 	return ret;
 }
 
+int power_key_check_in_pocket_no_light(void)
+{
+	struct cm3629_info *lpi = lp_info;
+
+	psensor_enable(lpi);
+	psensor_disable(lpi);
+
+	return ps_near;
+}
+
 static int cm3629_read_chip_id(struct cm3629_info *lpi)
 {
 	uint8_t chip_id[3] = {0};
@@ -2873,3 +2875,4 @@ module_exit(cm3629_exit);
 
 MODULE_DESCRIPTION("cm3629 Driver");
 MODULE_LICENSE("GPL");
+

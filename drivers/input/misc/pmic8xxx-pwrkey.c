@@ -23,6 +23,10 @@
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/input/pmic8xxx-pwrkey.h>
 
+#ifdef CONFIG_TOUCHSCREEN_CYPRESS_SWEEP2WAKE
+#include <linux/input/cy8c_cs.h>
+#endif
+
 #define PON_CNTL_1 0x1C
 #define PON_CNTL_PULL_UP BIT(7)
 #define PON_CNTL_TRIG_DELAY_MASK (0x7)
@@ -178,7 +182,9 @@ static int __devinit pmic8xxx_pwrkey_probe(struct platform_device *pdev)
 	pwrkey->key_press_irq = key_press_irq;
 	pwrkey->key_release_irq = key_release_irq;
 	pwrkey->pwr = pwr;
-
+#ifdef CONFIG_TOUCHSCREEN_CYPRESS_SWEEP2WAKE
+	sweep2wake_setdev(pwr);
+#endif
 	platform_set_drvdata(pdev, pwrkey);
 
 	/* check power key status during boot */

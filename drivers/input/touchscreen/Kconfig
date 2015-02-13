@@ -1033,6 +1033,11 @@ config TOUCHSCREEN_CYPRESS_CS
 	help
 	  Enables support for Cypress CY8C_CS touchkeys.
 
+config TOUCHSCREEN_CYPRESS_SWEEP2WAKE
+        tristate "Sweep2Wake for Cypress CS touchscreens"
+        depends on TOUCHSCREEN_CYPRESS_CS
+        default n
+
 config TOUCHSCREEN_SYNAPTICS_3K
 	tristate "Synaptics 3K i2c touchscreen"
 	depends on I2C
