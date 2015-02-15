@@ -861,7 +861,9 @@ void csrRoamSubstateChange( tpAniSirGlobal pMac, eCsrRoamSubState NewSubstate, t
     {
        return;
     }
-    pMac->roam.curSubState[sessionId] = NewSubstate;
+
+    if ((sessionId) < (sizeof(pMac->roam.curSubState) / sizeof(int)))
+       pMac->roam.curSubState[sessionId] = NewSubstate;
 }
 
 eCsrRoamState csrRoamStateChange( tpAniSirGlobal pMac, eCsrRoamState NewRoamState, tANI_U8 sessionId)
@@ -7794,7 +7796,7 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             tSirSmeAssocIndToUpperLayerCnf *pUpperLayerAssocCnf;
             tCsrRoamInfo roamInfo;
             tCsrRoamInfo *pRoamInfo = NULL;
-            tANI_U32 sessionId;
+            tANI_U32 sessionId = 0;
             eHalStatus status;
             smsLog( pMac, LOG1, FL("ASSOCIATION confirmation can be given to upper layer "));
             palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
@@ -14293,7 +14295,7 @@ eHalStatus csrGetRssi(tpAniSirGlobal pMac,
 {  
    eHalStatus status = eHAL_STATUS_SUCCESS;
    vos_msg_t  msg;
-   tANI_U32 sessionId;
+   tANI_U32 sessionId = 0;
 
    tAniGetRssiReq *pMsg;
    smsLog(pMac, LOG2, FL("called"));
