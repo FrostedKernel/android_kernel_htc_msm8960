@@ -942,16 +942,28 @@ endif
 
 choice
   prompt "Optimization level"
-  default CC_OPTIMIZE_DEFAULT
+  default CC_OPTIMIZE_NONE
 
 config CC_OPTIMIZE_FOR_SIZE
 	bool "Use -Os"
 
-config CC_OPTIMIZE_DEFAULT
+config CC_OPTIMIZE_FOR_DEBUG
+	bool "Use -Og"
+
+config CC_OPTIMIZE_NONE
+	bool "Use -O0"
+
+config CC_OPTIMIZE_SOME
+	bool "Use -O1"
+
+config CC_OPTIMIZE_MORE
 	bool "Use -O2"
 
 config CC_OPTIMIZE_ALOT
 	bool "Use -O3"
+
+config CC_OPTIMIZE_FAST
+	bool "Use -Ofast"
 
 endchoice
 

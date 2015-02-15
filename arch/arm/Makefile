@@ -57,7 +57,16 @@ comma = ,
 # Note that GCC does not numerically define an architecture version
 # macro, but instead defines a whole series of macros which makes
 # testing for a specific architecture or later rather impossible.
-arch-$(CONFIG_CPU_32v7)		:=-D__LINUX_ARM_ARCH__=7 $(call cc-option,-mtune=cortex-a15 -mcpu=cortex-a15 -mfpu=neon -ftree-vectorize -Wa$(comma)-mtune=cortex-a15 -mcpu=cortex-a15)
+
+CUSTOM_FLAG	= -fgcse-lm -fgcse-sm -fsched-spec-load -fgcse-after-reload \
+		  -fforce-addr -ffast-math  -fsingle-precision-constant \
+		  -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 -ftree-vectorize  \
+		  -mvectorize-with-neon-quad -marm \
+		  -funroll-loops -mvectorize-with-neon-quad -pipe \
+		  -fgraphite -floop-interchange -ftree-loop-distribution -floop-strip-mine -floop-block \
+		  -munaligned-access -fpredictive-commoning
+
+arch-$(CONFIG_CPU_32v7)		:=-D__LINUX_ARM_ARCH__=7 $(call cc-option, $(CUSTOM_FLAG))
 arch-$(CONFIG_CPU_32v6)		:=-D__LINUX_ARM_ARCH__=6 $(call cc-option,-march=armv6,-march=armv5t -Wa$(comma)-march=armv6)
 # Only override the compiler option if ARMv6. The ARMv6K extensions are
 # always available in ARMv7
