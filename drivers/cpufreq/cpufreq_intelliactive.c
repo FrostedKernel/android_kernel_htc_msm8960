@@ -1269,19 +1269,6 @@ static void interactive_input_event(struct input_handle *handle,
 	}
 }
 
-static int input_dev_filter(const char *input_dev_name)
-{
-	if (strstr(input_dev_name, "touchscreen") ||
-	    strstr(input_dev_name, "touch_dev") ||
-	    strstr(input_dev_name, "atmel_mxt224e") ||
-	    strstr(input_dev_name, "sec-touchscreen") ||
-	    strstr(input_dev_name, "keypad")) {
-		return 0;
-	} else {
-		return 1;
-	}
-}
-
 static int interactive_input_connect(struct input_handler *handler,
 		struct input_dev *dev, const struct input_device_id *id)
 {
