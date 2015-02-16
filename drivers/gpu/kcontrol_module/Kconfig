@@ -1,0 +1,6 @@
+config KCONTROL_GPU_MODULE_MSM
+        tristate
+        default m
+        depends on ARCH_MSM && MODULES && KALLSYMS_ALL
+	help
+	  Enable Advanced GPU Options in KControl for MSM Devices
