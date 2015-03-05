@@ -27,7 +27,7 @@
 #include <linux/hrtimer.h>
 #include <mach/cpufreq.h>
 #ifdef CONFIG_MSM_MPDEC_INPUTBOOST_CPUMIN
-#include "../../arch/arm/mach-msm/msm_mpdecision.h"
+#include "../../../arch/arm/mach-msm/msm_mpdecision.h"
 #endif
 
 static DEFINE_MUTEX(emergency_shutdown_mutex);
