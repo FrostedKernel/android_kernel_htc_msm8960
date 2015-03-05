@@ -30,8 +30,6 @@
 #include <linux/earlysuspend.h>
 #endif
 #include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/cpufreq.h>
 #include <linux/workqueue.h>
 #include <linux/completion.h>
@@ -100,8 +98,13 @@ static struct msm_mpdec_tuners {
 #endif
 };
 
+#if NR_CPUS == 2
 static unsigned int NwNs_Threshold[8] = {12, 0, 0, 7, 25, 10, 0, 18};
 static unsigned int TwTs_Threshold[8] = {140, 0, 0, 190, 140, 190, 0, 190};
+#else
+static unsigned int NwNs_Threshold[8] = {12, 0, 20, 7, 25, 10, 0, 18};
+static unsigned int TwTs_Threshold[8] = {140, 0, 140, 190, 140, 190, 0, 190};
+#endif
 
 extern unsigned int get_rq_info(void);
 extern unsigned long acpuclk_get_rate(int);
@@ -163,32 +166,41 @@ static unsigned long get_slowest_cpu_rate(void) {
 }
 
 static void mpdec_cpu_up(int cpu) {
-        if (!cpu_online(cpu)) {
-    		mutex_lock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
-        	cpu_up(cpu);
-        	per_cpu(msm_mpdec_cpudata, cpu).on_time = ktime_to_ms(ktime_get());
-        	per_cpu(msm_mpdec_cpudata, cpu).online = true;
-        	per_cpu(msm_mpdec_cpudata, cpu).times_cpu_hotplugged += 1;
-        	pr_info(MPDEC_TAG"CPU[%d] off->on | Mask=[%d%d]\n",
-                	cpu, cpu_online(0), cpu_online(1));
-        	mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
-    }
+	if (!cpu_online(cpu)) {
+		mutex_lock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
+		cpu_up(cpu);
+		per_cpu(msm_mpdec_cpudata, cpu).on_time = ktime_to_ms(ktime_get());
+		per_cpu(msm_mpdec_cpudata, cpu).online = true;
+		per_cpu(msm_mpdec_cpudata, cpu).times_cpu_hotplugged += 1;
+#if NR_CPUS == 2
+		pr_info(MPDEC_TAG"CPU[%d] off->on | Mask=[%d%d]\n",
+#else
+		pr_info(MPDEC_TAG"CPU[%d] off->on | Mask=[%d%d%d%d]\n",
+#endif
+			cpu, cpu_online(0), cpu_online(1));
+		mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
+	}
 }
 EXPORT_SYMBOL_GPL(mpdec_cpu_up);
 
 static void mpdec_cpu_down(int cpu) {
-    	cputime64_t on_time = 0;
-    	if (cpu_online(cpu)) {
-        	mutex_lock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
-        	cpu_down(cpu);
-        	on_time = (ktime_to_ms(ktime_get()) - per_cpu(msm_mpdec_cpudata, cpu).on_time);
-        	per_cpu(msm_mpdec_cpudata, cpu).online = false;
-        	per_cpu(msm_mpdec_cpudata, cpu).on_time_total += on_time;
-        	per_cpu(msm_mpdec_cpudata, cpu).times_cpu_unplugged += 1;
-        	pr_info(MPDEC_TAG"CPU[%d] on->off | Mask=[%d%d] | time online: %llu\n",
-                	cpu, cpu_online(0), cpu_online(1), on_time);
-        	mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
-    }
+	cputime64_t on_time = 0;
+	if (cpu_online(cpu)) {
+		mutex_lock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
+		cpu_down(cpu);
+		on_time = (ktime_to_ms(ktime_get()) - per_cpu(msm_mpdec_cpudata, cpu).on_time);
+		per_cpu(msm_mpdec_cpudata, cpu).online = false;
+		per_cpu(msm_mpdec_cpudata, cpu).on_time_total += on_time;
+		per_cpu(msm_mpdec_cpudata, cpu).times_cpu_unplugged += 1;
+#if NR_CPUS == 2
+		pr_info(MPDEC_TAG"CPU[%d] on->off | Mask=[%d%d] | time online: %llu\n",
+			cpu, cpu_online(0), cpu_online(1), on_time);
+#else
+		pr_info(MPDEC_TAG"CPU[%d] on->off | Mask=[%d%d%d%d] | time online: %llu\n",
+			cpu, cpu_online(0), cpu_online(1), cpu_online(2), cpu_online(3));
+#endif
+		mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
+	}
 }
 EXPORT_SYMBOL_GPL(mpdec_cpu_down);
 
@@ -248,8 +260,13 @@ static int mp_decision(void) {
 
 	last_time = ktime_to_ms(ktime_get());
 #if DEBUG
-    	pr_info(MPDEC_TAG"[DEBUG] rq: %u, new_state: %i | Mask=[%d%d]\n",
-            		rq_depth, new_state, cpu_online(0), cpu_online(1));
+#if NR_CPUS == 2
+	pr_info(MPDEC_TAG"[DEBUG] rq: %u, new_state: %i | Mask=[%d%d]\n",
+			rq_depth, new_state, cpu_online(0), cpu_online(1));
+#else
+	pr_info(MPDEC_TAG"[DEBUG] rq: %u, new_state: %i | Mask=[%d%d%d%d]\n",
+			rq_depth, new_state, cpu_online(0), cpu_online(1), cpu_online(2), cpu_online(3));
+#endif
 #endif
 	return new_state;
 }
@@ -349,7 +366,7 @@ static int update_cpu_min_freq(struct cpufreq_policy *cpu_policy,
 
 static void unboost_cpu(int cpu) {
 /* we don't use mpdec's cpu up/down funcs here to control offline, to be
-* unboosted, cpus to avoid influencing mpdec's stats */
+ * unboosted, cpus to avoid influencing mpdec's stats */
 	struct cpufreq_policy *cpu_policy = NULL;
 	bool cpu_mod = false;
 
@@ -366,11 +383,11 @@ static void unboost_cpu(int cpu) {
 				if (cpu_mod) {
 					pr_info(MPDEC_TAG"cpu%i was modified. Restoring state...", cpu);
 					cpu_down(cpu);
- 				}
+				}
 				return;
 			}
 #if DEBUG
-			pr_info(MPDEC_TAG"un boosted cpu%i to %lu", cpu, per_cpu(msm_mpdec_cpudata, cpu).norm_min_freq); cpu).norm_min_freq);
+			pr_info(MPDEC_TAG"un boosted cpu%i to %lu", cpu, per_cpu(msm_mpdec_cpudata, cpu).norm_min_freq);
 #endif
 			per_cpu(msm_mpdec_cpudata, cpu).is_boosted = false;
 			per_cpu(msm_mpdec_cpudata, cpu).revib_wq_running = false;
@@ -379,12 +396,12 @@ static void unboost_cpu(int cpu) {
 				pr_info(MPDEC_TAG"cpu%u min was changed while boosted (%lu->%u), using new min",
 					cpu, per_cpu(msm_mpdec_cpudata, cpu).norm_min_freq, cpu_policy->min);
 				per_cpu(msm_mpdec_cpudata, cpu).norm_min_freq = cpu_policy->min;
- 			}
+			}
 			update_cpu_min_freq(cpu_policy, cpu, per_cpu(msm_mpdec_cpudata, cpu).norm_min_freq);
 			cpufreq_cpu_put(cpu_policy);
 			mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).unboost_mutex);
- 		}
- 	}
+		}
+	}
 	if (cpu_mod) {
 		pr_info(MPDEC_TAG"cpu%i was modified. Restoring state...", cpu);
 		cpu_down(cpu);
@@ -459,7 +476,7 @@ static void mpdec_input_callback(struct work_struct *unused) {
 	return;
 }
 
-#ifdef CONFIG_BRICKED_THERMAL
+#ifdef CONFIG_THERMAL
 extern int bricked_thermal_throttled;
 #endif
 
@@ -467,7 +484,7 @@ static void mpdec_input_event(struct input_handle *handle, unsigned int type,
 				unsigned int code, int value) {
 	int i = 0;
 
-#ifdef CONFIG_BRICKED_THERMAL
+#ifdef CONFIG_THERMAL
 	if (bricked_thermal_throttled > 0)
 		return;
 #endif
@@ -587,30 +604,35 @@ static void msm_mpdec_resume(struct work_struct * msm_mpdec_suspend_work) {
 
 	if (!mpdec_suspended) {
 		pr_info(MPDEC_TAG"Screen -> on\n");
- 		return;
+		return;
 	}
 
-    	mpdec_suspended = false;
+	mpdec_suspended = false;
 
-    	if (msm_mpdec_tuners_ins.scroff_single_core) {
-        	/* wake up main work thread */
-        	was_paused = true;
-        	queue_delayed_work(msm_mpdec_workq, &msm_mpdec_work, 0);
-        	/* restore min/max cpus limits */
-        	for (cpu=1; cpu<CONFIG_NR_CPUS; cpu++) {
-            		if (cpu < msm_mpdec_tuners_ins.min_cpus) {
-                		if (!cpu_online(cpu))
-                    			mpdec_cpu_up(cpu);
-            		} else if (cpu > msm_mpdec_tuners_ins.max_cpus) {
-                		if (cpu_online(cpu))
-                    			mpdec_cpu_down(cpu);
-            		}
-        	}
-        	pr_info(MPDEC_TAG"Screen -> on. Activated mpdecision. | Mask=[%d%d]\n",
-                		cpu_online(0), cpu_online(1));
-    	} else {
-	        pr_info(MPDEC_TAG"Screen -> on\n");
-    	}
+	if (msm_mpdec_tuners_ins.scroff_single_core) {
+		/* wake up main work thread */
+		was_paused = true;
+		queue_delayed_work(msm_mpdec_workq, &msm_mpdec_work, 0);
+		/* restore min/max cpus limits */
+		for (cpu=1; cpu<CONFIG_NR_CPUS; cpu++) {
+			if (cpu < msm_mpdec_tuners_ins.min_cpus) {
+				if (!cpu_online(cpu))
+					mpdec_cpu_up(cpu);
+			} else if (cpu > msm_mpdec_tuners_ins.max_cpus) {
+				if (cpu_online(cpu))
+					mpdec_cpu_down(cpu);
+			}
+		}
+#if NR_CPUS == 2
+		pr_info(MPDEC_TAG"Screen -> on. Activated mpdecision. | Mask=[%d%d]\n",
+				cpu_online(0), cpu_online(1));
+#else
+		pr_info(MPDEC_TAG"Screen -> on. Activated mpdecision. | Mask=[%d%d%d%d]\n",
+				cpu_online(0), cpu_online(1), cpu_online(2), cpu_online(3));
+#endif
+	} else {
+		pr_info(MPDEC_TAG"Screen -> on\n");
+	}
 }
 static DECLARE_WORK(msm_mpdec_resume_work, msm_mpdec_resume);
 
@@ -1246,4 +1268,3 @@ void msm_mpdec_exit(void) {
 #endif
 	destroy_workqueue(msm_mpdec_workq);
 }
-
