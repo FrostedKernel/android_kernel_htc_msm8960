@@ -68,7 +68,7 @@ struct msm_thermal_stat {
     cputime64_t time_max;
 };
 
-#ifdef CONFIG_THERMAL_MONITOR
+#if defined (CONFIG_THERMAL_MONITOR) || (CONFIG_BRICKED_THERMAL)
 extern int msm_thermal_init(struct msm_thermal_data *pdata);
 extern int msm_thermal_device_init(void);
 #else
