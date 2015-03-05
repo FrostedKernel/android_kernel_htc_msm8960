@@ -523,4 +523,3 @@ int __init msm_thermal_late_init(void)
 	return msm_thermal_add_cc_nodes();
 }
 module_init(msm_thermal_late_init);
-
