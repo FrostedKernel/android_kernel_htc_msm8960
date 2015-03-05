@@ -56,6 +56,7 @@ struct msm_thermal_data {
 	uint32_t limit_freq;
 	uint32_t temp_hysteresis;
 #endif
+#endif
 };
 
 struct msm_thermal_stat {
