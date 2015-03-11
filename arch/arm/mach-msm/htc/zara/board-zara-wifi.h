@@ -1,4 +1,4 @@
-/* linux/arch/arm/mach-msm/board-m4-wifi.h
+/* linux/arch/arm/mach-msm/board-zara-wifi.h
  *
  * Copyright (C) 2008 HTC Corporation.
  *
