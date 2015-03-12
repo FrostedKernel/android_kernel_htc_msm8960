@@ -678,7 +678,114 @@ static long msm_vpe_subdev_ioctl(struct v4l2_subdev *sd,
 		default:
 			break;
 		}
-		CDBG("%s: end, id = %d, rc = %d", __func__, cmd->id, rc);
+
+		rc = msm_vpe_do_pp(zoom);
+		break;
+		}
+
+	case VPE_CMD_ENABLE: {
+		struct msm_vpe_clock_rate clk_rate;
+		int turbo_mode;
+		if (sizeof(struct msm_vpe_clock_rate) != vpe_cmd->length) {
+			pr_err("%s: size mismatch cmd=%d, len=%d, expected=%d",
+				__func__, vpe_cmd->cmd_type, vpe_cmd->length,
+				sizeof(struct msm_vpe_clock_rate));
+			rc = -EINVAL;
+			break;
+		}
+		if (copy_from_user(&clk_rate, (void __user *)vpe_cmd->value,
+			sizeof(struct msm_vpe_clock_rate))) {
+			pr_err("%s:clk_rate copy failed", __func__);
+			return -EFAULT;
+		}
+		turbo_mode = (int)clk_rate.rate;
+		rc = turbo_mode ? vpe_enable(VPE_TURBO_MODE_CLOCK_RATE, mctl) :
+				vpe_enable(VPE_NORMAL_MODE_CLOCK_RATE, mctl);
+		break;
+		}
+
+	case VPE_CMD_DISABLE:
+		rc = vpe_disable(mctl);
+		break;
+
+	default:
+		break;
+	}
+
+	return rc;
+}
+
+static long msm_vpe_subdev_ioctl(struct v4l2_subdev *sd,
+			unsigned int cmd, void *arg)
+{
+	struct msm_vpe_cfg_cmd *vpe_cmd;
+	int rc = 0;
+	struct msm_cam_media_controller *mctl;
+	mctl = v4l2_get_subdev_hostdata(sd);
+	switch (cmd) {
+	case VIDIOC_MSM_VPE_INIT: {
+		rc = msm_vpe_subdev_init(sd);
+		break;
+		}
+
+	case VIDIOC_MSM_VPE_RELEASE:
+		msm_vpe_subdev_release(sd);
+		break;
+
+	case MSM_CAM_V4L2_IOCTL_CFG_VPE: {
+		vpe_cmd = (struct msm_vpe_cfg_cmd *)arg;
+		rc = msm_vpe_process_vpe_cmd(vpe_cmd, mctl);
+		if (rc < 0) {
+			pr_err("%s Error processing VPE cmd %d ",
+				__func__, vpe_cmd->cmd_type);
+			break;
+		}
+		break;
+		}
+
+	case MSM_CAM_V4L2_IOCTL_GET_EVENT_PAYLOAD: {
+		struct msm_device_queue *queue = &vpe_ctrl->eventData_q;
+		struct msm_queue_cmd *event_qcmd;
+		struct msm_mctl_pp_event_info pp_event_info;
+		struct msm_mctl_pp_frame_info *pp_frame_info;
+		struct msm_camera_v4l2_ioctl_t *v4l2_ioctl = arg;
+
+		event_qcmd = msm_dequeue(queue, list_eventdata);
+		if (!event_qcmd) {
+			pr_err("%s No events in the queue", __func__);
+			return -EFAULT;
+		}
+		pp_frame_info = event_qcmd->command;
+
+		D("%s Unmapping source and destination buffers ",
+			__func__);
+		msm_mctl_unmap_user_frame(&pp_frame_info->src_frame,
+			pp_frame_info->p_mctl->client, mctl->domain_num);
+		msm_mctl_unmap_user_frame(&pp_frame_info->dest_frame,
+			pp_frame_info->p_mctl->client, mctl->domain_num);
+
+		pp_event_info.event = MCTL_PP_EVENT_CMD_ACK;
+		pp_event_info.ack.cmd = pp_frame_info->user_cmd;
+		pp_event_info.ack.status = 0;
+		pp_event_info.ack.cookie = pp_frame_info->pp_frame_cmd.cookie;
+		D("%s Sending payload %d %d %d", __func__,
+			pp_event_info.ack.cmd, pp_event_info.ack.status,
+			pp_event_info.ack.cookie);
+		if (copy_to_user((void __user *)v4l2_ioctl->ioctl_ptr,
+			&pp_event_info,	sizeof(struct msm_mctl_pp_event_info))) {
+			kfree(pp_frame_info);
+			kfree(event_qcmd);
+			pr_err("%s PAYLOAD Copy to user failed ", __func__);
+	                return -EINVAL;
+		 }
+
+		kfree(pp_frame_info);
+		kfree(event_qcmd);
+		break;
+		}
+
+	default:
+		break;
 	}
 	return rc;
 }
