@@ -123,6 +123,7 @@ int zara_wifi_set_carddetect(int val)
 		printk(KERN_WARNING "%s: Nobody to notify\n", __func__);
 	return 0;
 }
+EXPORT_SYMBOL(zara_wifi_set_carddetect);
 
 int zara_wifi_power(int on)
 {

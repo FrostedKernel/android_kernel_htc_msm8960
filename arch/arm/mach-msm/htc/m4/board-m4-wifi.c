@@ -1,13 +1,23 @@
+#include <linux/kernel.h>
+#include <linux/init.h>
 #include <linux/platform_device.h>
+#include <linux/delay.h>
+#include <linux/err.h>
+#include <asm/mach-types.h>
 #include <asm/gpio.h>
+#include <asm/io.h>
 #include <linux/skbuff.h>
-#include <linux/wlan_plat.h>
+#include <linux/wifi_tiwlan.h>
+#include <mach/msm_bus.h>
+#include <mach/msm_bus_board.h>
 
 #include "board-m4.h"
 #include "board-m4-wifi.h"
-#include "board-m4-mmc.h"
 
-static int m4_wifi_get_mac_addr(unsigned char *buf);
+int m4_wifi_power(int on);
+int m4_wifi_reset(int on);
+int m4_wifi_set_carddetect(int on);
+int m4_wifi_get_mac_addr(unsigned char *buf);
 
 #define PREALLOC_WLAN_NUMBER_OF_SECTIONS	4
 #define PREALLOC_WLAN_NUMBER_OF_BUFFERS		160
@@ -36,12 +46,6 @@ static wifi_mem_prealloc_t wifi_mem_array[PREALLOC_WLAN_NUMBER_OF_SECTIONS] = {
 	{ NULL, (WLAN_SECTION_SIZE_3 + PREALLOC_WLAN_SECTION_HEADER) }
 };
 
-static int m4_wifi_reset(int on)
-{
-	printk(KERN_INFO "%s: do nothing\n", __func__);
-	return 0;
-}
-
 static void *m4_wifi_mem_prealloc(int section, unsigned long size)
 {
 	if (section == PREALLOC_WLAN_NUMBER_OF_SECTIONS)
@@ -53,7 +57,7 @@ static void *m4_wifi_mem_prealloc(int section, unsigned long size)
 	return wifi_mem_array[section].mem_ptr;
 }
 
-static int __init m4_init_wifi_mem(void)
+int __init m4_init_wifi_mem(void)
 {
 	int i;
 
@@ -156,6 +160,7 @@ static unsigned strip_nvs_param(char *param)
 
 	param_len = strlen(param);
 
+
 	for (start_idx = 0; start_idx < len - param_len; start_idx++) {
 		if (memcmp(&nvs_data[start_idx], param, param_len) == 0)
 			break;
@@ -203,8 +208,10 @@ get_mac_from_wifi_nvs_ram(char *buf, unsigned int buf_len)
 	if (mac_ptr) {
 		mac_ptr += strlen(WIFI_MAC_PARAM_STR);
 
+
 		while (mac_ptr[0] == ' ')
 			mac_ptr++;
+
 
 		len = 0;
 		while (mac_ptr[len] != '\r' && mac_ptr[len] != '\n' &&
@@ -222,7 +229,7 @@ get_mac_from_wifi_nvs_ram(char *buf, unsigned int buf_len)
 }
 
 #define ETHER_ADDR_LEN 6
-static int m4_wifi_get_mac_addr(unsigned char *buf)
+int m4_wifi_get_mac_addr(unsigned char *buf)
 {
 	static u8 ether_mac_addr[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0xFF};
 	char mac[WIFI_MAX_MAC_LEN];
