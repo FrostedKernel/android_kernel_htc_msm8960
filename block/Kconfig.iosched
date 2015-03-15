@@ -72,7 +72,7 @@ config IOSCHED_ZEN
 	  Should work best with devices where there is no travel delay.
 
 config IOSCHED_FIFO
-	bool
+	tristate "FiFo I/O Scheduler"
 	default y
 	---help---
 	  Fifo is similar to no-op I/O scheduler and it's a minimal scheduler that does basic merging
@@ -191,7 +191,7 @@ choice
 		bool "ZEN" if IOSCHED_ZEN=y
 
 	config DEFAULT_FIFO
-		bool "fifo"
+		bool "fifo" if IOSCHED_FIFO=y
 
 endchoice
 
