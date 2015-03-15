@@ -80,15 +80,16 @@ source "drivers/staging/sep/Kconfig"
 
 source "drivers/staging/iio/Kconfig"
 
+<<<<<<< HEAD
 source "drivers/staging/snappy/Kconfig"
 
 source "drivers/staging/zram/Kconfig"
 
+=======
+>>>>>>> cm/cm-12.0
 source "drivers/staging/zcache/Kconfig"
 
 source "drivers/staging/qcache/Kconfig"
-
-source "drivers/staging/zsmalloc/Kconfig"
 
 source "drivers/staging/wlags49_h2/Kconfig"
 
