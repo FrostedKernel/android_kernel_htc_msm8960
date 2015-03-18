@@ -2850,7 +2850,6 @@ static struct platform_device msm_tsens_device = {
 };
 
 static struct msm_thermal_data msm_thermal_pdata = {
-#ifdef CONFIG_BRICKED_THERMAL
         .sensor_id = 9,
         .poll_ms = 150,
         .shutdown_temp = 75,
@@ -2866,33 +2865,6 @@ static struct msm_thermal_data msm_thermal_pdata = {
         .allowed_low_high = 60,
         .allowed_low_low = 55,
         .allowed_low_freq = 1350000,
-#endif
-#ifndef CONFIG_BRICKED_THERMAL
-	.sensor_id = 9,
-#ifdef CONFIG_INTELLI_THERMAL
-	.poll_ms = 250,
-#ifdef CONFIG_CPU_OVERCLOCK
-	.limit_temp_degC = 70,
-#else
-	.limit_temp_degC = 60,
-#endif
-	.temp_hysteresis_degC = 10,
-	.freq_step = 2,
-	.freq_control_mask = 0xf,
-	.core_limit_temp_degC = 80,
-	.core_temp_hysteresis_degC = 10,
-	.core_control_mask = 0xe,
-#else
-	.poll_ms = 1000,
-#ifdef CONFIG_CPU_OVERCLOCK
-	.limit_temp = 75,
-#else
-	.limit_temp = 60,
-#endif
-	.limit_freq = 918000,
- 	.temp_hysteresis = 10,
-#endif
-#endif
 };
 
 /* 8930 Phase 2 */
