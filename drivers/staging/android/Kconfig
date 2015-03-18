@@ -139,10 +139,6 @@ config ANDROID_LMK_ADJ_RBTREE
 	  Utilize RB Tree for walking the tasklist.. O(log n) vs O(n)
 	  much speedier for long task list!
 
-config ENHANCED_LMK_ROUTINE
-	bool "Enhanced Android Low Memory Killer Routines"
-	depends on ANDROID_LOW_MEMORY_KILLER
-
 source "drivers/staging/android/switch/Kconfig"
 
 config ANDROID_INTF_ALARM_DEV
